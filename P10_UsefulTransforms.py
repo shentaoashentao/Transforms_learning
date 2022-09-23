@@ -3,7 +3,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
 writer = SummaryWriter("logs")
-img  = Image.open("E:\\reggie\\reggie-master\\imgs\9a851fbe-5f29-4ec2-b795-bb4553086b4d.jpg")
+img = Image.open("E:\\reggie\\reggie-master\\imgs\\lADPJw1WTo8jKUTNC9DND8A_4032_3024.jpg")
 print(img)
 
 #ToTensor
@@ -18,5 +18,5 @@ trans_norm = transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
 img_norm = trans_norm(img_tensor)
 print(img_norm[0][0][0])
 
-writer.add_image("Normalize", img_norm,1)
+writer.add_image("Normalize", img_norm)
 writer.close()
