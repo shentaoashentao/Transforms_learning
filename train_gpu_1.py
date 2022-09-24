@@ -1,9 +1,9 @@
 import torch.optim
 import torchvision
 from torch import nn
+
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn import ReLU
-from  torch.utils.data import DataLoader
 
 #准备数据集
 #训练数据集
@@ -11,9 +11,9 @@ from torch.utils.data import DataLoader
 
 from model import Shentao
 
-train_data = torchvision.datasets.CIFAR10(root = "../data", train=True, transform=torchvision.transforms.ToTensor(), download=True)
+train_data = torchvision.datasets.CIFAR10(root = "../data_gpu", train=True, transform=torchvision.transforms.ToTensor(), download = True)
 #测试数据集
-test_data = torchvision.datasets.CIFAR10(root= "../data", train=False, transform=torchvision.transforms.ToTensor(), download=True)
+test_data = torchvision.datasets.CIFAR10(root= "../data_gpu", train=False, transform=torchvision.transforms.ToTensor(), download = True)
 
 #看看数据集大小
 train_data_size = len(train_data)
@@ -27,14 +27,43 @@ train_dataloader = DataLoader(train_data, batch_size=64)
 test_dataloader = DataLoader(test_data, batch_size=64)
 
 #创建网络模型
-shentao = Shentao()
+class Shentao(nn.Module):
+    #初始化
+    def __init__(self):
+        #父类初始化
+        super(Shentao, self).__init__()
+        self.model = nn.Sequential(
+            #卷积第一步  对input进行卷积 到达池化层
+            nn.Conv2d(3, 32, 5, 1, 2),
+            #2*2 kernel池化
+            nn.MaxPool2d(2),
+            #nn.Conv2d(3, 32, 5, 1, 2)  in_channel = 32, out_channel = 32, kernel = 5, stride = 1, padding = 2
+            #再卷积
+            nn.Conv2d(32, 32, 5, 1, 2),
+            #池化
+            nn.MaxPool2d(2),
+            #卷积
+            nn.Conv2d(32, 64, 5, 1, 2),
+            # 池化
+            nn.MaxPool2d(2),
+            #展平
+            nn.Flatten(),
 
+            nn.Linear(64*4*4, 64),
+            nn.Linear(64, 10)
+
+        )
+    def forward(self, x):
+        x = self.model(x)
+        return x
+shentao = Shentao()
+shentao = shentao.cuda()
 #损失函数
 loss_fn = nn.CrossEntropyLoss()
-
+loss_fn = loss_fn.cuda()
 #优化器
 learning_rate=0.01
-optimizer = torch.optim.SGD(shentao.parameters(), lr=learning_rate, )
+optimizer = torch.optim.SGD(shentao.parameters(), lr=learning_rate)
 
 #设置训练网络的参数
 #记录训练次数
@@ -42,17 +71,25 @@ total_train_step = 0
 #记录测试次数
 total_test_step =0
 #训练的轮数
-epoch = 1
+epoch = 10
 
-writer = SummaryWriter("logs")
+writer = SummaryWriter("train_gpu_1")
 
 for i in range(epoch):
     print("-----------第{}轮训练开始------------".format(i+1))
     #训练开始
+    shentao.train()
     for data in train_dataloader:
         imgs, tragets = data
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        imgs = imgs.cuda()
+        targets = tragets.cuda()
+        tragets = tragets.to(device)
         outputs = shentao(imgs)
-        loss = loss_fn(outputs,tragets)
+        print(outputs.is_cuda)
+        print(tragets.is_cuda)
+        loss = loss_fn(outputs, tragets)
 
         #优化器优化模型
         optimizer.zero_grad()
@@ -69,9 +106,15 @@ for i in range(epoch):
     total_accurary = 0
     with torch.no_gard():## 对梯度清零，防止上一轮的梯度影响下一轮的学习
         for data in test_dataloader:
-            imgs,tragets = data
+            imgs, tragets = data
+
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            imgs = imgs.cuda()
+            targets = tragets.cuda()
+            tragets = tragets.to(device)
             outputs = shentao(imgs)
-            loss = loss_fn(outputs,tragets)
+
+            loss = loss_fn(outputs, tragets)
             total_test_loss = total_test_loss + loss.item()
 
             accurary = (outputs.argmax(1) == tragets).sum()
