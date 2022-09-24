@@ -1,6 +1,7 @@
 import torch.optim
 import torchvision
 from torch import nn
+from torch.utils.tensorboard import SummaryWriter
 from torch.nn import ReLU
 
 #准备数据集
@@ -40,7 +41,9 @@ total_train_step = 0
 #记录测试次数
 total_test_step =0
 #训练的轮数
-epoch = 10
+epoch = 1
+
+writer = SummaryWriter()
 
 for i in range(epoch):
     print("-----------第{}轮训练开始------------".format(i+1))
@@ -56,10 +59,13 @@ for i in range(epoch):
         optimizer.step()
 
         total_train_step = total_train_step + 1
-        print("训练次数：{},loss:{}".format(total_train_step, loss))
-
+        if total_test_step % 100 == 0:
+            print("训练次数：{},loss:{}".format(total_train_step, loss))
+            writer.add_scalar("train_loss", loss.item(), total_test_step)
     #测试开始
+    shentao.eval()
     total_test_loss = 0
+    total_accurary = 0
     with torch.no_gard():
         for data in test_dataloader:
             imgs,tragets = data
@@ -67,8 +73,13 @@ for i in range(epoch):
             loss = loss_fn(outputs,tragets)
             total_test_loss = total_test_loss + loss.item()
 
+            accurary = (outputs.argmax(1) == tragets).sum()
+            total_accurary = total_accurary + accurary
+
         print("整体测试集上的Loss:{}".format(total_test_loss))
+        print("整体测试集上的准确率:{}".format(total_accurary/test_data_size))
         writer.add_scalar("test_loss", total_test_loss, total_test_step)
+        writer.add_scalar("test_accurary", total_accurary/test_data_size, total_test_step)
         total_test_step  = total_test_step + 1
 
         torch.save(shentao,"shentao_{}.pth".format(i))
