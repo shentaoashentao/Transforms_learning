@@ -4,7 +4,6 @@ import time
 from torch import nn
 
 from torch.utils.tensorboard import SummaryWriter
-from torch.nn import ReLU
 from torch.utils.data import DataLoader
 
 from model import Shentao
@@ -105,28 +104,27 @@ for i in range(epoch):
             print("训练次数：{},loss:{}".format(total_train_step, loss))
             writer.add_scalar("train_loss", loss.item(), total_train_step)
 
-
     #测试开始
     shentao.eval()## 将模型设置成验证状态
     total_test_loss = 0
     total_accurary = 0
 
-    with torch.no_gard():## 对梯度清零，防止上一轮的梯度影响下一轮的学习
-        for data in test_dataloader:
-            imgs, tragets = data
+    #with torch.no_gard():# 对梯度清零，防止上一轮的梯度影响下一轮的学习
+    for data in test_dataloader:
+        imgs, tragets = data
 
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-            imgs = imgs.cuda()
-            targets = tragets.cuda()
-            tragets = tragets.to(device)
-            outputs = shentao(imgs)
+        imgs = imgs.cuda()
+        targets = tragets.cuda()
+        tragets = tragets.to(device)
+        outputs = shentao(imgs)
 
-            loss = loss_fn(outputs, tragets)
-            total_test_loss = total_test_loss + loss.item()
+        loss = loss_fn(outputs, tragets)
+        total_test_loss = total_test_loss + loss.item()
 
-            accurary = (outputs.argmax(1) == tragets).sum()
-            total_accurary = total_accurary + accurary
+        accurary = (outputs.argmax(1) == tragets).sum()
+        total_accurary = total_accurary + accurary
 
     print("整体测试集上的Loss:{}".format(total_test_loss))
     print("整体测试集上的准确率:{}".format(total_accurary/test_data_size))
